@@ -46,8 +46,11 @@ verification BLOCKED after 3 rounds, or a toolchain step fails twice).
 When the overrides ask for Korean:
 - `script.json`: `"lang": "ko"`; write subtitles and every on-screen string in natural Korean (plain 해요체 for narration).
   Keep widely used technical terms in English the first time, with a Korean gloss ("BEV(위에서 내려다본 지도)").
-- TTS text (2nd element of each sentence): spell out units and abbreviations the way they should be read
-  ("142센티미터", "엠에이피", "에이치백"); digits and dates are read correctly by the engine.
+- TTS text (2nd element of each sentence): Latin-letter runs are read in English with the same voice, everything
+  else in Korean (`tts.py` splits them). Write only the key academic terms in Latin letters ("scenario acquisition",
+  "trajectory", "outlier"); keep author names and everyday words in Korean ("모리 등은", "최적화 알고리즘").
+  Spell acronyms with spaces ("O D D") and drop hyphens inside a term when a plain form works ("Deep Q Network").
+  Spell out units the way they should be read ("142센티미터"); digits and dates are read correctly by the engine.
 - `tts.py` picks Supertonic 3 automatically for non-English `lang` (first run downloads the model).
 - `claims.json` quotes stay verbatim English from the paper; claim `text` may be Korean.
 - Rendering needs a Korean font (macOS has Apple SD Gothic Neo; on Linux install Noto Sans CJK).

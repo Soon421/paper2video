@@ -23,6 +23,9 @@ np = None  # imported in main(): `--download-models` must work before the venv i
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from p2v_paths import JOBS, MODELS  # noqa: E402
 SR = 24000  # set per engine in main()
+import re
+# a run of Latin words (letters, digits, hyphens, apostrophes, spaces between them): read in English
+LATIN = re.compile(r"([A-Za-z][A-Za-z0-9'\-]*(?: [A-Za-z][A-Za-z0-9'\-]*)*)")
 REL = 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/'
 KOKORO_FILES = {  # name: (size, sha256) of the model-files-v1.0 release assets
     'kokoro-v1.0.onnx': (325532387, '7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5'),
@@ -109,8 +112,17 @@ def main():
             assert sr == SR, sr
             return trim(np.asarray(s, dtype=np.float32))
         if engine == 'supertonic':
-            w, _ = k.synthesize(text, voice_style=style, lang=lang, speed=speed)
-            return trim(np.asarray(w, dtype=np.float32).reshape(-1))
+            # Non-English narration: Latin-letter runs (academic terms such as "scenario acquisition", "outlier",
+            # "time-to-collision") are read in English with the same voice, the rest in `lang`, then joined.
+            # Write only the terms that should sound English in Latin letters; spell acronyms with spaces ("O D D").
+            parts = [text] if lang == 'en' else [p for p in LATIN.split(text) if p.strip()]
+            pcm = []
+            for p in parts:
+                pl = 'en' if lang != 'en' and LATIN.fullmatch(p.strip()) else lang
+                w, _ = k.synthesize(p.strip(), voice_style=style, lang=pl, speed=speed)
+                pcm.append(trim(np.asarray(w, dtype=np.float32).reshape(-1)))
+                if len(parts) > 1: pcm.append(np.zeros(int(SR * .04), dtype=np.float32))
+            return trim(np.concatenate(pcm))
         if engine == 'silent':
             return np.zeros(int(SR * max(1.2, len(text.split()) / 2.6 / speed)), dtype=np.float32)
         sys.exit(f'unknown engine {engine}')
